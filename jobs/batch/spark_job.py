@@ -9,19 +9,12 @@ from pyspark.sql.functions import (
     count,
     countDistinct,
     dayofweek,
-    hour,
-    lit,
-    lower,
-    to_date,
-    to_timestamp,
-    when,
 )
-from pyspark.sql.types import BooleanType, LongType, StringType, StructField, StructType
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run batch metrics for GH Archive JSON lines.")
-    parser.add_argument("--input", required=True, help="Input directory that contains JSON lines.")
+    parser = argparse.ArgumentParser(description="Run batch metrics for curated GH Archive parquet.")
+    parser.add_argument("--input", required=True, help="Input directory that contains curated parquet data.")
     parser.add_argument("--output", required=True, help="Output directory for parquet data.")
     return parser
 
@@ -39,60 +32,21 @@ def main() -> None:
     args = build_parser().parse_args()
     spark = build_spark()
 
-    schema = StructType(
-        [
-            StructField("id", StringType(), True),
-            StructField("type", StringType(), True),
-            StructField("created_at", StringType(), True),
-            StructField(
-                "actor",
-                StructType([StructField("login", StringType(), True)]),
-                True,
-            ),
-            StructField(
-                "repo",
-                StructType(
-                    [
-                        StructField("id", LongType(), True),
-                        StructField("name", StringType(), True),
-                    ]
-                ),
-                True,
-            ),
-            StructField("public", BooleanType(), True),
-        ]
-    )
-
-    raw_df = spark.read.schema(schema).json(args.input)
     events_df = (
-        raw_df.withColumn("created_ts", to_timestamp(col("created_at")))
-        .withColumn("metric_date", to_date(col("created_ts")))
-        .withColumn("hour_of_day", hour(col("created_ts")))
-        .withColumn("day_of_week", dayofweek(col("created_ts")))
-        .withColumn("actor_login", col("actor.login"))
-        .withColumn("repo_name", col("repo.name"))
-        .withColumn(
-            "actor_category",
-            when(lower(col("actor.login")).contains("bot"), lit("bot")).otherwise(lit("human")),
-        )
-        .fillna({"repo_name": "unknown/unknown", "actor_login": "unknown"})
+        spark.read.parquet(args.input)
+        .withColumnRenamed("event_date", "metric_date")
+        .withColumnRenamed("event_hour", "hour_of_day")
+        .withColumn("day_of_week", dayofweek(col("metric_date")))
     )
 
     daily_metrics_df = (
-        events_df.groupBy("metric_date", "repo_name", "type", "actor_category")
+        events_df.groupBy(
+            "metric_date", "repo_name", "event_type", "actor_category", "language_guess"
+        )
         .agg(
             count("*").alias("event_count"),
             countDistinct("actor_login").alias("unique_actors"),
             avg("hour_of_day").alias("avg_hour"),
-        )
-        .withColumnRenamed("type", "event_type")
-        .withColumn(
-            "language_guess",
-            when(lower(col("repo_name")).contains("spark"), lit("Scala"))
-            .when(lower(col("repo_name")).contains("python"), lit("Python"))
-            .when(lower(col("repo_name")).contains("react"), lit("JavaScript"))
-            .when(lower(col("repo_name")).contains("java"), lit("Java"))
-            .otherwise(lit("unknown")),
         )
     )
 

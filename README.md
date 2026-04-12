@@ -171,9 +171,15 @@ python jobs/replay/replay_gharchive_to_kafka.py --input data/raw --topic github_
 ### 6. 运行 Spark 离线任务
 
 ```bash
-python jobs/batch/spark_job.py --input data/raw --output data/sample
+python jobs/batch/curate_events.py --input data/raw --output data/curated
+python jobs/batch/spark_job.py --input data/curated --output data/sample
 python scripts/load_batch_metrics_to_clickhouse.py --input data/sample
 ```
+
+说明：
+
+- `curate_events.py` 负责把原始 `GH Archive JSON` 清洗成统一的 `Parquet` 标准化数据层。
+- `spark_job.py` 负责基于清洗后的 `Parquet` 生成离线聚合指标。
 
 ### 7. 启动正式前端
 
