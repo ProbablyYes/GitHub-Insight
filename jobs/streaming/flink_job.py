@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 from kafka import KafkaConsumer
 
@@ -41,7 +41,7 @@ def flush_metrics(events: list[dict]) -> None:
 
     for event in events:
         created_at = datetime.fromisoformat(event["created_at"])
-        window_start = created_at.replace(second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S")
+        window_start = created_at.replace(second=0, microsecond=0)
         event_metrics.append(
             {
                 "window_start": window_start,
@@ -79,7 +79,7 @@ def flush_metrics(events: list[dict]) -> None:
         if anomaly_ratio >= 2.0:
             anomaly_rows.append(
                 {
-                    "window_start": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                    "window_start": datetime.now(timezone.utc).replace(tzinfo=None),
                     "repo_name": repo_name,
                     "current_events": current_events,
                     "baseline_events": average_events,

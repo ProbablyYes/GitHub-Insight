@@ -10,52 +10,50 @@ import {
   YAxis,
 } from "recharts";
 
-type Point = {
-  label: string;
-  value: number;
-};
-
-type MetricLineChartProps = {
-  data: Point[];
-  color?: string;
-};
+type Point = { label: string; value: number };
 
 export function MetricLineChart({
   data,
-  color = "#2563eb",
-}: MetricLineChartProps) {
+  color = "#33ff57",
+}: {
+  data: Point[];
+  color?: string;
+}) {
   return (
-    <div className="h-72 w-full">
+    <div style={{ width: "100%", height: 280 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 12, right: 12, left: -12, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.22)" />
+        <LineChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.06)" />
           <XAxis
             dataKey="label"
-            tick={{ fill: "#94a3b8", fontSize: 12 }}
-            axisLine={false}
+            tick={{ fill: "#666", fontSize: 12, fontFamily: '"Zpix", monospace' }}
+            axisLine={{ stroke: "#333" }}
             tickLine={false}
-            minTickGap={24}
+            minTickGap={30}
           />
           <YAxis
-            tick={{ fill: "#94a3b8", fontSize: 12 }}
-            axisLine={false}
+            tick={{ fill: "#666", fontSize: 12, fontFamily: '"Zpix", monospace' }}
+            axisLine={{ stroke: "#333" }}
             tickLine={false}
           />
           <Tooltip
             contentStyle={{
-              borderRadius: 12,
-              border: "1px solid rgba(148, 163, 184, 0.2)",
-              background: "rgba(15, 23, 42, 0.94)",
-              color: "#e2e8f0",
+              borderRadius: 0,
+              border: "2px solid #333",
+              background: "#111",
+              color: "#d4d4d4",
+              fontFamily: '"Zpix", monospace',
+              fontSize: 13,
             }}
           />
           <Line
-            type="monotone"
+            type="stepAfter"
             dataKey="value"
             stroke={color}
-            strokeWidth={3}
+            strokeWidth={2}
             dot={false}
-            activeDot={{ r: 5 }}
+            activeDot={{ r: 5, fill: color, stroke: "#000", strokeWidth: 2 }}
+            style={{ filter: `drop-shadow(0 0 6px ${color}66)` }}
           />
         </LineChart>
       </ResponsiveContainer>

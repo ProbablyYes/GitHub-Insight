@@ -1,50 +1,119 @@
 @import "tailwindcss";
+@import "nes.css/css/nes.min.css";
 
+@font-face {
+  font-family: "Zpix";
+  src: url("/fonts/zpix.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ===== Design Tokens ===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0a0a0a;
+  --fg: #d4d4d4;
+  --fg-strong: #ffffff;
+  --green: #33ff57;
+  --green-dim: rgba(51, 255, 87, 0.10);
+  --yellow: #ffcc00;
+  --yellow-dim: rgba(255, 204, 0, 0.10);
+  --cyan: #33ccff;
+  --cyan-dim: rgba(51, 204, 255, 0.10);
+  --red: #ff3333;
+  --panel: #111111;
+  --muted: #666666;
+  --divider: #222222;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-panel: #ffffff;
-  --color-panel-border: rgba(15, 23, 42, 0.08);
-  --color-muted: #64748b;
-  --color-accent: #2563eb;
-  --color-accent-soft: rgba(37, 99, 235, 0.12);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --color-panel: #111827;
-    --color-panel-border: rgba(148, 163, 184, 0.18);
-    --color-muted: #94a3b8;
-    --color-accent: #60a5fa;
-    --color-accent-soft: rgba(96, 165, 250, 0.16);
-  }
-}
+* { box-sizing: border-box; image-rendering: pixelated; }
 
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
+html, body, pre, code, kbd, samp, input, textarea, select, button {
+  font-family: "Zpix", "Press Start 2P", monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
   margin: 0;
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 2;
+  background-image:
+    linear-gradient(rgba(51,255,87,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51,255,87,0.02) 1px, transparent 1px);
+  background-size: 16px 16px;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px
+  );
 }
+
+a { color: inherit; text-decoration: none; }
+::selection { background: var(--green); color: #000; }
+
+/* ===== NES.css dark overrides ===== */
+.nes-container {
+  background: var(--panel) !important;
+  color: var(--fg) !important;
+  padding: 24px !important;
+  margin: 0 !important;
+}
+.nes-container.is-dark {
+  background: var(--panel) !important;
+  color: var(--fg) !important;
+}
+.nes-container.is-dark::after {
+  color: var(--fg) !important;
+}
+.nes-container.with-title > .title {
+  background-color: var(--bg) !important;
+  color: var(--green) !important;
+  font-size: 14px !important;
+}
+.nes-container.is-dark.with-title > .title {
+  background-color: var(--bg) !important;
+}
+.nes-btn {
+  font-family: "Zpix", "Press Start 2P", monospace !important;
+  font-size: 14px !important;
+}
+.nes-progress {
+  height: 24px !important;
+}
+
+/* ===== Animations ===== */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes glow-pulse {
+  0%, 100% { text-shadow: 0 0 6px currentColor; }
+  50% { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor; }
+}
+@keyframes float-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-blink { animation: blink-cursor 1s step-end infinite; }
+.animate-glow  { animation: glow-pulse 2.5s ease-in-out infinite; }
+.animate-float { animation: float-up 0.5s ease-out both; }
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }

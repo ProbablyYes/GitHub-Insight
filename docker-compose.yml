@@ -86,3 +86,14 @@ services:
       CLICKHOUSE_USER: analytics
       CLICKHOUSE_PASSWORD: analytics
       CLICKHOUSE_DATABASE: github_analytics
+
+  spark-batch:
+    build:
+      context: ./jobs/batch
+    container_name: gba-spark-batch
+    entrypoint: ["/bin/bash", "-lc"]
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      PYTHONPATH: /workspace

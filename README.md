@@ -8,7 +8,7 @@
 - 使用轻量实时消费者进行本地实时窗口聚合、热度评分和异常检测，并保留 `Flink SQL` 方案作为扩展实现。
 - 使用 `Spark` 进行历史趋势、行为画像和周级汇总分析。
 - 使用 `MinIO` 保存原始文件和中间产物。
-- 使用 `ClickHouse` 保存查询结果，为 `Next.js`、`Superset` 和 `Streamlit` 提供数据。
+- 使用 `ClickHouse` 保存查询结果，为 `Next.js` 和 `Superset` 提供数据。
 
 ## 核心分析问题
 
@@ -38,7 +38,6 @@ flowchart LR
     spark --> clickhouse
     clickhouse --> superset[SupersetDashboard]
     clickhouse --> nextjs[NextjsDashboard]
-    clickhouse --> streamlit[StreamlitFallback]
 ```
 
 ## 项目结构
@@ -46,8 +45,7 @@ flowchart LR
 ```text
 .
 |-- apps
-|   |-- web
-|   `-- streamlit
+|   `-- web
 |-- configs
 |   `-- clickhouse
 |-- data
@@ -185,13 +183,7 @@ npm run dev --prefix apps/web
 
 如果使用容器化前端，可直接访问 `http://localhost:3000`。
 
-### 8. 启动备用 Streamlit 演示页
-
-```bash
-streamlit run apps/streamlit/app.py
-```
-
-### 9. 一键启动演示链路
+### 8. 一键启动演示链路
 
 默认启动 `Next.js` 仪表盘：
 
@@ -199,10 +191,10 @@ streamlit run apps/streamlit/app.py
 powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1
 ```
 
-如果需要改为备用页：
+推荐日常开发与联调使用统一入口：
 
 ```bash
-powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1 -UseStreamlit
+powershell -ExecutionPolicy Bypass -File scripts/start_all.ps1
 ```
 
 ## 开发建议
@@ -215,5 +207,5 @@ powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1 -UseStrea
 
 - 正式演示时使用一段固定的 `GH Archive` 数据做回放。
 - 保留一份录屏作为故障兜底方案。
-- 正式页面优先使用 `Next.js`，`Streamlit` 保留为降级展示方案。
+- 展示层统一使用 `Next.js`，避免双前端入口增加维护成本。
 - 实时与离线图表使用同一套指标命名，方便答辩说明。

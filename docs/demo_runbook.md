@@ -13,7 +13,7 @@
 5. 启动事件回放脚本，将历史事件写入 Kafka。
 6. 运行 Spark 离线作业，导入 ClickHouse。
 7. 打开 `Next.js` 仪表盘，展示实时趋势、热门仓库、异常预警和离线画像。
-8. 如前端异常，再切到 `Streamlit` 备用页。
+8. 展示总览页、实时页、离线页的分区结构和后续扩展位。
 9. 总结流批结合的价值和课程收获。
 
 ## 3. 正常运行命令
@@ -74,12 +74,6 @@ python scripts/load_batch_metrics_to_clickhouse.py --input data/sample
 npm run dev --prefix apps/web
 ```
 
-备用演示页：
-
-```bash
-streamlit run apps/streamlit/app.py
-```
-
 ### 一键运行
 
 默认启动正式前端：
@@ -88,10 +82,10 @@ streamlit run apps/streamlit/app.py
 powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1
 ```
 
-切换到备用页：
+统一启动开发联调链路：
 
 ```bash
-powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1 -UseStreamlit
+powershell -ExecutionPolicy Bypass -File scripts/start_all.ps1
 ```
 
 ## 4. 答辩时的讲解重点
@@ -100,7 +94,7 @@ powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1 -UseStrea
 - 为什么需要同时做实时分析和离线分析。
 - Kafka、轻量实时消费者、Spark 在系统中的分工。
 - 热门仓库、异常预警、Bot 行为分析分别说明了什么。
-- 为什么正式展示层采用 `Next.js`，备用展示层保留 `Streamlit`。
+- 为什么展示层统一采用 `Next.js`，减少双入口维护成本。
 
 ## 5. 风险与降级方案
 
@@ -115,12 +109,11 @@ powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1 -UseStrea
 
 ### 风险 3：Next.js 页面未成功连接 ClickHouse
 
-- 降级方案：切换到 `Streamlit` 备用页。
-- 同时保留 `ClickHouse` SQL 查询结果截图作为兜底。
+- 降级方案：直接展示 `ClickHouse` SQL 查询结果截图和录屏。
 
 ### 风险 4：Superset 初始化慢
 
-- 降级方案：优先使用 Streamlit 展示核心指标。
+- 降级方案：优先使用 `Next.js` 展示核心指标。
 
 ### 风险 5：现场网络不稳定
 
@@ -131,5 +124,5 @@ powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1 -UseStrea
 - 成员 A：数据下载、过滤和回放
 - 成员 B：Kafka 与实时处理
 - 成员 C：Spark 离线分析
-- 成员 D：ClickHouse、Next.js、Superset、Streamlit
-- 成员 E：报告、PPT、联调与答辩讲解
+- 成员 D：ClickHouse、Next.js、Superset
+- 成员 E：联调、验收、报告与答辩材料

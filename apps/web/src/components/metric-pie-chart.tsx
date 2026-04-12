@@ -2,37 +2,34 @@
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-type Point = {
-  label: string;
-  value: number;
-};
+type Point = { label: string; value: number };
 
-type MetricPieChartProps = {
-  data: Point[];
-};
+const COLORS = ["#33ff57", "#33ccff", "#ffcc00", "#ff3333"];
 
-const COLORS = ["#2563eb", "#8b5cf6", "#14b8a6", "#f97316"];
-
-export function MetricPieChart({ data }: MetricPieChartProps) {
+export function MetricPieChart({ data }: { data: Point[] }) {
   return (
-    <div className="h-72 w-full">
+    <div style={{ width: "100%", height: 280 }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Tooltip
             contentStyle={{
-              borderRadius: 12,
-              border: "1px solid rgba(148, 163, 184, 0.2)",
-              background: "rgba(15, 23, 42, 0.94)",
-              color: "#e2e8f0",
+              borderRadius: 0,
+              border: "2px solid #333",
+              background: "#111",
+              color: "#d4d4d4",
+              fontFamily: '"Zpix", monospace',
+              fontSize: 13,
             }}
           />
           <Pie
             data={data}
             dataKey="value"
             nameKey="label"
-            innerRadius={62}
-            outerRadius={96}
-            paddingAngle={4}
+            innerRadius={55}
+            outerRadius={90}
+            paddingAngle={2}
+            stroke="#0a0a0a"
+            strokeWidth={2}
           >
             {data.map((entry, index) => (
               <Cell key={entry.label} fill={COLORS[index % COLORS.length]} />

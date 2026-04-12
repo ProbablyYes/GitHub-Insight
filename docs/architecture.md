@@ -23,7 +23,7 @@
 - `Spark`：离线分析
 - `MinIO`：对象存储
 - `ClickHouse`：分析型数据库
-- `Next.js / Superset / Streamlit`：可视化层
+- `Next.js / Superset`：可视化层
 
 ## 3. 架构分层
 
@@ -49,9 +49,8 @@
 
 ### 展示层
 
-- `Next.js` 用于正式课程仪表盘和演示大屏。
+- `Next.js` 用于正式课程仪表盘、像素风总览页和演示大屏。
 - `Superset` 用于补充 BI 仪表盘。
-- `Streamlit` 用于故障兜底和备用演示入口。
 
 ## 4. 数据流
 
@@ -69,7 +68,6 @@ flowchart LR
     parquet --> clickhouse
     clickhouse --> superset[Superset]
     clickhouse --> nextjs[NextjsDashboard]
-    clickhouse --> streamlit[StreamlitFallback]
 ```
 
 ## 5. 课程展示亮点

@@ -2,46 +2,43 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-type Point = {
-  label: string;
-  value: number;
-};
-
-type MetricBarChartProps = {
-  data: Point[];
-  color?: string;
-};
+type Point = { label: string; value: number };
 
 export function MetricBarChart({
   data,
-  color = "#14b8a6",
-}: MetricBarChartProps) {
+  color = "#33ccff",
+}: {
+  data: Point[];
+  color?: string;
+}) {
   return (
-    <div className="h-72 w-full">
+    <div style={{ width: "100%", height: 280 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 12, right: 12, left: -12, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.22)" />
+        <BarChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.06)" />
           <XAxis
             dataKey="label"
-            tick={{ fill: "#94a3b8", fontSize: 12 }}
-            axisLine={false}
+            tick={{ fill: "#666", fontSize: 12, fontFamily: '"Zpix", monospace' }}
+            axisLine={{ stroke: "#333" }}
             tickLine={false}
-            minTickGap={24}
+            minTickGap={30}
           />
           <YAxis
-            tick={{ fill: "#94a3b8", fontSize: 12 }}
-            axisLine={false}
+            tick={{ fill: "#666", fontSize: 12, fontFamily: '"Zpix", monospace' }}
+            axisLine={{ stroke: "#333" }}
             tickLine={false}
           />
           <Tooltip
             contentStyle={{
-              borderRadius: 12,
-              border: "1px solid rgba(148, 163, 184, 0.2)",
-              background: "rgba(15, 23, 42, 0.94)",
-              color: "#e2e8f0",
+              borderRadius: 0,
+              border: "2px solid #333",
+              background: "#111",
+              color: "#d4d4d4",
+              fontFamily: '"Zpix", monospace',
+              fontSize: 13,
             }}
           />
-          <Bar dataKey="value" fill={color} radius={[8, 8, 0, 0]} />
+          <Bar dataKey="value" fill={color} radius={0} />
         </BarChart>
       </ResponsiveContainer>
     </div>

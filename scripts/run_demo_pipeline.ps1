@@ -1,7 +1,3 @@
-param(
-    [switch]$UseStreamlit
-)
-
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $projectRoot
 
@@ -29,7 +25,7 @@ Write-Host "Step 1: copy sample data"
 & "$PSScriptRoot\bootstrap_sample_data.ps1"
 
 Write-Host "Step 2: start infrastructure"
-docker compose up -d zookeeper kafka clickhouse minio superset
+docker compose up -d zookeeper kafka clickhouse minio web
 
 Write-Host "Waiting for ClickHouse to become ready"
 Wait-ForHttpEndpoint -Url "http://127.0.0.1:8123/ping"
@@ -52,14 +48,7 @@ python jobs/batch/spark_job.py --input data/raw --output data/sample
 Write-Host "Step 6: load batch results"
 python scripts/load_batch_metrics_to_clickhouse.py --input data/sample
 
-if ($UseStreamlit) {
-    Write-Host "Step 7: start Streamlit"
-    Write-Host "Realtime consumer job id: $($streamingJob.Id)"
-    streamlit run apps/streamlit/app.py
-}
-else {
-    Write-Host "Step 7: start Next.js dashboard"
-    Write-Host "Realtime consumer job id: $($streamingJob.Id)"
-    Write-Host "Use Receive-Job -Id $($streamingJob.Id) to inspect background consumer logs if needed."
-    npm run dev --prefix apps/web
-}
+Write-Host "Step 7: start Next.js dashboard"
+Write-Host "Realtime consumer job id: $($streamingJob.Id)"
+Write-Host "Use Receive-Job -Id $($streamingJob.Id) to inspect background consumer logs if needed."
+npm run dev --prefix apps/web
