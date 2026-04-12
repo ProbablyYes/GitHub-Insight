@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+data/raw/
+data/sample/daily_metrics/
+data/sample/activity_patterns/
+
+.streamlit/
+.idea/
+.vscode/
+apps/web/node_modules/
+apps/web/.next/
+apps/web/.env.local
