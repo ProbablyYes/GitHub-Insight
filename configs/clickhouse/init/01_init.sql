@@ -62,3 +62,47 @@ CREATE TABLE IF NOT EXISTS github_analytics.batch_activity_patterns (
 )
 ENGINE = MergeTree
 ORDER BY (metric_date, hour_of_day, day_of_week, actor_category);
+
+CREATE TABLE IF NOT EXISTS github_analytics.batch_language_day_trend (
+    metric_date Date,
+    language_guess String,
+    event_count UInt64,
+    unique_repos UInt64,
+    unique_actors UInt64,
+    ingestion_time DateTime DEFAULT now()
+)
+ENGINE = MergeTree
+ORDER BY (metric_date, language_guess);
+
+CREATE TABLE IF NOT EXISTS github_analytics.batch_top_users_day (
+    metric_date Date,
+    actor_login String,
+    event_count UInt64,
+    unique_repos UInt64,
+    rank UInt64,
+    ingestion_time DateTime DEFAULT now()
+)
+ENGINE = MergeTree
+ORDER BY (metric_date, rank, actor_login);
+
+CREATE TABLE IF NOT EXISTS github_analytics.batch_top_repos_day (
+    metric_date Date,
+    repo_name String,
+    event_count UInt64,
+    unique_actors UInt64,
+    rank UInt64,
+    ingestion_time DateTime DEFAULT now()
+)
+ENGINE = MergeTree
+ORDER BY (metric_date, rank, repo_name);
+
+CREATE TABLE IF NOT EXISTS github_analytics.batch_event_type_day (
+    metric_date Date,
+    event_type LowCardinality(String),
+    event_count UInt64,
+    unique_actors UInt64,
+    unique_repos UInt64,
+    ingestion_time DateTime DEFAULT now()
+)
+ENGINE = MergeTree
+ORDER BY (metric_date, event_type);

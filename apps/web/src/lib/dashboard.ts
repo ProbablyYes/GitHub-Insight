@@ -45,6 +45,32 @@ export type ActivityPoint = {
   totalEvents: number;
 };
 
+export type LanguageDayTrendPoint = {
+  metricDate: string;
+  languageGuess: string;
+  totalEvents: number;
+};
+
+export type TopUserPoint = {
+  metricDate: string;
+  actorLogin: string;
+  eventCount: number;
+  rank: number;
+};
+
+export type TopRepoPoint = {
+  metricDate: string;
+  repoName: string;
+  eventCount: number;
+  rank: number;
+};
+
+export type EventTypeDayPoint = {
+  metricDate: string;
+  eventType: string;
+  totalEvents: number;
+};
+
 type CountRow = { value: string | number };
 
 async function queryJson<T>(query: string): Promise<T[]> {
@@ -220,6 +246,120 @@ export async function getActivityPattern(): Promise<ActivityPoint[]> {
   return rows.map((row) => ({
     hourOfDay: Number(row.hour_of_day),
     actorCategory: row.actor_category,
+    totalEvents: Number(row.total_events),
+  }));
+}
+
+export async function getLanguageDayTrend(limit = 36): Promise<LanguageDayTrendPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    language_guess: string;
+    total_events: number;
+  }>(`
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      language_guess,
+      sum(event_count) AS total_events
+    FROM batch_language_day_trend
+    GROUP BY metric_date, language_guess
+    ORDER BY metric_date DESC, total_events DESC
+    LIMIT ${Number(limit)}
+  `);
+
+  return rows
+    .reverse()
+    .map((row) => ({
+      metricDate: row.metric_date_str,
+      languageGuess: row.language_guess,
+      totalEvents: Number(row.total_events),
+    }));
+}
+
+export async function getTopUsersLatest(topN = 10): Promise<TopUserPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    actor_login: string;
+    event_count: number;
+    rank: number;
+  }>(`
+    WITH latest_date AS (
+      SELECT max(metric_date) AS d
+      FROM batch_top_users_day
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      actor_login,
+      event_count,
+      rank
+    FROM batch_top_users_day
+    WHERE metric_date = (SELECT d FROM latest_date)
+    ORDER BY rank ASC
+    LIMIT ${Number(topN)}
+  `);
+
+  return rows.map((row) => ({
+    metricDate: row.metric_date_str,
+    actorLogin: row.actor_login,
+    eventCount: Number(row.event_count),
+    rank: Number(row.rank),
+  }));
+}
+
+export async function getTopReposLatest(topN = 10): Promise<TopRepoPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    repo_name: string;
+    event_count: number;
+    rank: number;
+  }>(`
+    WITH latest_date AS (
+      SELECT max(metric_date) AS d
+      FROM batch_top_repos_day
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      repo_name,
+      event_count,
+      rank
+    FROM batch_top_repos_day
+    WHERE metric_date = (SELECT d FROM latest_date)
+    ORDER BY rank ASC
+    LIMIT ${Number(topN)}
+  `);
+
+  return rows.map((row) => ({
+    metricDate: row.metric_date_str,
+    repoName: row.repo_name,
+    eventCount: Number(row.event_count),
+    rank: Number(row.rank),
+  }));
+}
+
+export async function getEventTypeBreakdown(days = 7): Promise<EventTypeDayPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    event_type: string;
+    total_events: number;
+  }>(`
+    WITH latest_date AS (
+      SELECT max(metric_date) AS d
+      FROM batch_event_type_day
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      event_type,
+      sum(event_count) AS total_events
+    FROM batch_event_type_day
+    WHERE metric_date >= subtractDays((SELECT d FROM latest_date), ${Math.max(Number(days) - 1, 0)})
+      AND metric_date <= (SELECT d FROM latest_date)
+    GROUP BY metric_date, event_type
+    ORDER BY metric_date, total_events DESC
+    LIMIT 64
+  `);
+
+  return rows.map((row) => ({
+    metricDate: row.metric_date_str,
+    eventType: row.event_type,
     totalEvents: Number(row.total_events),
   }));
 }
