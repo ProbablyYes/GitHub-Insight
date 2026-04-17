@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import sys
 import shutil
 from pathlib import Path
 
@@ -25,12 +24,6 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.types import BooleanType, LongType, StringType, StructField, StructType
 
-try:
-    from jobs.common.spark_runtime import validate_local_spark_runtime
-except ModuleNotFoundError:
-    sys.path.append(str(Path(__file__).resolve().parents[2]))
-    from jobs.common.spark_runtime import validate_local_spark_runtime
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -52,7 +45,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def build_spark() -> SparkSession:
-    validate_local_spark_runtime()
     return (
         SparkSession.builder.appName("github-stream-batch-curation")
         .master("local[*]")
