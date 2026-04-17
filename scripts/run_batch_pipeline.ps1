@@ -4,6 +4,12 @@ param(
     [string]$OutputDir = "data/sample"
 )
 
+$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    throw "docker command not found. Please install/start Docker Desktop, or run local Spark with JAVA_HOME + winutils."
+}
+
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $projectRoot
 
@@ -17,4 +23,7 @@ Write-Host "Step 3: run Spark batch aggregations on curated parquet"
 docker compose run --rm spark-batch "/opt/spark/bin/spark-submit /workspace/jobs/batch/spark_job.py --input /workspace/$CuratedDir --output /workspace/$OutputDir"
 
 Write-Host "Step 4: load batch metrics into ClickHouse"
+if (-not (Test-Path $OutputDir)) {
+    throw "Batch output directory '$OutputDir' was not generated. Aborting ClickHouse load."
+}
 python -m scripts.load_batch_metrics_to_clickhouse --input $OutputDir

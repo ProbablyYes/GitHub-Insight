@@ -98,7 +98,8 @@ flowchart LR
 
 - 计算日级和周级趋势。
 - 统计语言活跃度、事件分布和开发者节律。
-- 生成与实时分析互补的长期指标。
+- 生成高级离线分析：仓库综合评分、趋势预测、短期爆发 vs 长期稳定。
+- 输出可解释字段（热度分量、动量、稳定度、Bot 占比）支撑可视化展示。
 
 ### 5. 可视化展示
 
@@ -179,7 +180,8 @@ python scripts/load_batch_metrics_to_clickhouse.py --input data/sample
 说明：
 
 - `curate_events.py` 负责把原始 `GH Archive JSON` 清洗成统一的 `Parquet` 标准化数据层。
-- `spark_job.py` 负责基于清洗后的 `Parquet` 生成离线聚合指标。
+- `spark_job.py` 负责基于清洗后的 `Parquet` 生成基础 + 高级离线指标。
+- `load_batch_metrics_to_clickhouse.py` 会同时装载基础表与高级分析表（排名、趋势预测、爆发稳定、节律热图等）。
 
 ### 7. 启动正式前端
 
