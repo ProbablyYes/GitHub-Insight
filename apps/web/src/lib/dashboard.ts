@@ -71,6 +71,60 @@ export type EventTypeDayPoint = {
   totalEvents: number;
 };
 
+export type AdvancedRepoRankPoint = {
+  metricDate: string;
+  repoName: string;
+  rankNo: number;
+  rankScore: number;
+  hotnessDecayedTotal: number;
+  momentumLatest: number;
+  stabilityIndex: number;
+  botRatio: number;
+  trendLabel: string;
+};
+
+export type RepoTrendForecastPoint = {
+  metricDate: string;
+  repoName: string;
+  rankNo: number;
+  totalEvents: number;
+  ma7: number;
+  forecastNextDay: number;
+};
+
+export type BurstStabilityPoint = {
+  metricDate: string;
+  repoName: string;
+  rankNo: number;
+  rankScore: number;
+  burstIndex: number;
+  stabilityIndex: number;
+  shortTermPressure: number;
+  quadrant: string;
+};
+
+export type RhythmHeatmapCell = {
+  metricDate: string;
+  dayOfWeek: number;
+  hourOfDay: number;
+  actorCategory: string;
+  eventCount: number;
+  intensityScore: number;
+  peakFlag: boolean;
+};
+
+export type HotnessComponentPoint = {
+  metricDate: string;
+  repoName: string;
+  rankNo: number;
+  hotnessRaw: number;
+  watchContribution: number;
+  forkContribution: number;
+  issuesContribution: number;
+  pullRequestContribution: number;
+  pushContribution: number;
+};
+
 type CountRow = { value: string | number };
 
 async function queryJson<T>(query: string): Promise<T[]> {
@@ -363,3 +417,226 @@ export async function getEventTypeBreakdown(days = 7): Promise<EventTypeDayPoint
     totalEvents: Number(row.total_events),
   }));
 }
+
+export async function getAdvancedRepoRankings(
+  limit = 12
+): Promise<AdvancedRepoRankPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    repo_name: string;
+    rank_no: number;
+    rank_score: number;
+    hotness_decayed_total: number;
+    momentum_latest: number;
+    stability_index: number;
+    bot_ratio: number;
+    trend_label: string;
+  }>(`
+    WITH latest_date AS (
+      SELECT max(metric_date) AS d
+      FROM batch_repo_rank_daily
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      repo_name,
+      rank_no,
+      rank_score,
+      hotness_decayed_total,
+      momentum_latest,
+      stability_index,
+      bot_ratio,
+      trend_label
+    FROM batch_repo_rank_daily
+    WHERE metric_date = (SELECT d FROM latest_date)
+    ORDER BY rank_no ASC
+    LIMIT ${Math.max(Number(limit), 1)}
+  `);
+
+  return rows.map((row) => ({
+    metricDate: row.metric_date_str,
+    repoName: row.repo_name,
+    rankNo: Number(row.rank_no),
+    rankScore: Number(row.rank_score),
+    hotnessDecayedTotal: Number(row.hotness_decayed_total),
+    momentumLatest: Number(row.momentum_latest),
+    stabilityIndex: Number(row.stability_index),
+    botRatio: Number(row.bot_ratio),
+    trendLabel: row.trend_label,
+  }));
+}
+
+export async function getRepoTrendForecast(
+  days = 30
+): Promise<RepoTrendForecastPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    repo_name: string;
+    rank_no: number;
+    total_events: number;
+    ma7: number;
+    forecast_next_day: number;
+  }>(`
+    WITH focus_repo AS (
+      SELECT repo_name
+      FROM batch_repo_rank_daily
+      ORDER BY metric_date DESC, rank_no ASC
+      LIMIT 1
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      repo_name,
+      rank_no,
+      total_events,
+      ma7,
+      forecast_next_day
+    FROM batch_repo_trend_forecast
+    WHERE repo_name = (SELECT repo_name FROM focus_repo)
+    ORDER BY metric_date DESC
+    LIMIT ${Math.max(Number(days), 7)}
+  `);
+
+  return rows
+    .reverse()
+    .map((row) => ({
+      metricDate: row.metric_date_str,
+      repoName: row.repo_name,
+      rankNo: Number(row.rank_no),
+      totalEvents: Number(row.total_events),
+      ma7: Number(row.ma7),
+      forecastNextDay: Number(row.forecast_next_day),
+    }));
+}
+
+export async function getBurstStabilitySnapshot(
+  limit = 60
+): Promise<BurstStabilityPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    repo_name: string;
+    rank_no: number;
+    rank_score: number;
+    burst_index: number;
+    stability_index: number;
+    short_term_pressure: number;
+    quadrant: string;
+  }>(`
+    WITH latest_date AS (
+      SELECT max(metric_date) AS d
+      FROM batch_repo_burst_stability
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      repo_name,
+      coalesce(rank_no, 999999) AS rank_no,
+      coalesce(rank_score, 0.0) AS rank_score,
+      burst_index,
+      stability_index,
+      short_term_pressure,
+      quadrant
+    FROM batch_repo_burst_stability
+    WHERE metric_date = (SELECT d FROM latest_date)
+    ORDER BY burst_index DESC, stability_index DESC
+    LIMIT ${Math.max(Number(limit), 1)}
+  `);
+
+  return rows.map((row) => ({
+    metricDate: row.metric_date_str,
+    repoName: row.repo_name,
+    rankNo: Number(row.rank_no),
+    rankScore: Number(row.rank_score),
+    burstIndex: Number(row.burst_index),
+    stabilityIndex: Number(row.stability_index),
+    shortTermPressure: Number(row.short_term_pressure),
+    quadrant: row.quadrant,
+  }));
+}
+
+export async function getDeveloperRhythmHeatmap(
+  actorCategory: "human" | "bot" = "human"
+): Promise<RhythmHeatmapCell[]> {
+  const category = actorCategory === "bot" ? "bot" : "human";
+  const rows = await queryJson<{
+    metric_date_str: string;
+    day_of_week: number;
+    hour_of_day: number;
+    actor_category: string;
+    event_count: number;
+    intensity_score: number;
+    peak_flag: boolean;
+  }>(`
+    WITH latest_date AS (
+      SELECT max(metric_date) AS d
+      FROM batch_developer_rhythm_heatmap
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      day_of_week,
+      hour_of_day,
+      actor_category,
+      event_count,
+      intensity_score,
+      peak_flag
+    FROM batch_developer_rhythm_heatmap
+    WHERE metric_date = (SELECT d FROM latest_date)
+      AND actor_category = '${category}'
+    ORDER BY day_of_week, hour_of_day
+  `);
+
+  return rows.map((row) => ({
+    metricDate: row.metric_date_str,
+    dayOfWeek: Number(row.day_of_week),
+    hourOfDay: Number(row.hour_of_day),
+    actorCategory: row.actor_category,
+    eventCount: Number(row.event_count),
+    intensityScore: Number(row.intensity_score),
+    peakFlag: Boolean(row.peak_flag),
+  }));
+}
+
+export async function getHotnessComponentsLatest(
+  limit = 10
+): Promise<HotnessComponentPoint[]> {
+  const rows = await queryJson<{
+    metric_date_str: string;
+    repo_name: string;
+    rank_no: number;
+    hotness_raw: number;
+    watch_contribution: number;
+    fork_contribution: number;
+    issues_contribution: number;
+    pull_request_contribution: number;
+    push_contribution: number;
+  }>(`
+    WITH latest_date AS (
+      SELECT max(metric_date) AS d
+      FROM batch_repo_hotness_components
+    )
+    SELECT
+      toString(metric_date) AS metric_date_str,
+      repo_name,
+      coalesce(rank_no, 999999) AS rank_no,
+      hotness_raw,
+      watch_contribution,
+      fork_contribution,
+      issues_contribution,
+      pull_request_contribution,
+      push_contribution
+    FROM batch_repo_hotness_components
+    WHERE metric_date = (SELECT d FROM latest_date)
+    ORDER BY rank_no ASC, hotness_raw DESC
+    LIMIT ${Math.max(Number(limit), 1)}
+  `);
+
+  return rows.map((row) => ({
+    metricDate: row.metric_date_str,
+    repoName: row.repo_name,
+    rankNo: Number(row.rank_no),
+    hotnessRaw: Number(row.hotness_raw),
+    watchContribution: Number(row.watch_contribution),
+    forkContribution: Number(row.fork_contribution),
+    issuesContribution: Number(row.issues_contribution),
+    pullRequestContribution: Number(row.pull_request_contribution),
+    pushContribution: Number(row.push_contribution),
+  }));
+}
+

@@ -62,8 +62,15 @@ python jobs/streaming/flink_job.py
 ### 离线处理
 
 ```bash
-python jobs/batch/spark_job.py --input data/raw --output data/sample
+python jobs/batch/curate_events.py --input data/raw --output data/curated
+python jobs/batch/spark_job.py --input data/curated --output data/sample
 python scripts/load_batch_metrics_to_clickhouse.py --input data/sample
+```
+
+Windows 本地直接跑 Spark 需要 `JAVA_HOME` 与 `winutils.exe`，若本地环境不满足，优先使用容器化批处理：
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/run_batch_pipeline.ps1
 ```
 
 ### 展示页面
