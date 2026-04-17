@@ -42,16 +42,13 @@ $streamingJob = Start-Job -ScriptBlock {
 Write-Host "Step 4: replay sample events to Kafka"
 python jobs/replay/replay_gharchive_to_kafka.py --input data/raw --topic github_events --speedup 1000
 
-Write-Host "Step 5: curate raw events"
-python jobs/batch/curate_events.py --input data/raw --output data/curated
+Write-Host "Step 5: run batch job"
+python jobs/batch/spark_job.py --input data/raw --output data/sample
 
-Write-Host "Step 6: run batch job on curated parquet"
-python jobs/batch/spark_job.py --input data/curated --output data/sample
-
-Write-Host "Step 7: load batch results"
+Write-Host "Step 6: load batch results"
 python scripts/load_batch_metrics_to_clickhouse.py --input data/sample
 
-Write-Host "Step 8: start Next.js dashboard"
+Write-Host "Step 7: start Next.js dashboard"
 Write-Host "Realtime consumer job id: $($streamingJob.Id)"
 Write-Host "Use Receive-Job -Id $($streamingJob.Id) to inspect background consumer logs if needed."
 npm run dev --prefix apps/web
