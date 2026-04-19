@@ -4,16 +4,29 @@ import argparse
 import json
 import time
 from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from kafka import KafkaProducer
 
-from jobs.common.config import DEFAULT_EVENT_TYPES, KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC
+from jobs.common.config import (
+    DEFAULT_EVENT_TYPES,
+    KAFKA_BOOTSTRAP_SERVERS,
+    KAFKA_TOPIC,
+    REALTIME_REPLAY_INPUT,
+)
 from jobs.common.event_schema import GithubEvent
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Replay GH Archive events to Kafka.")
-    parser.add_argument("--input", required=True, help="Input directory containing json files.")
+    parser.add_argument(
+        "--input",
+        default=str(REALTIME_REPLAY_INPUT),
+        help="Input directory containing json files, or a single json replay file.",
+    )
     parser.add_argument("--topic", default=KAFKA_TOPIC, help="Kafka topic.")
     parser.add_argument(
         "--bootstrap-servers",
@@ -35,8 +48,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def iter_events(input_dir: Path, event_types: set[str]):
-    for path in sorted(input_dir.glob("*.json")):
+def iter_events(input_path: Path, event_types: set[str]):
+    if input_path.is_file():
+        files = [input_path]
+    else:
+        files = sorted(input_path.glob("*.json"))
+
+    for path in files:
         with path.open("r", encoding="utf-8") as file_obj:
             for line in file_obj:
                 if not line.strip():

@@ -1,115 +1,272 @@
 import { DashboardCharts } from "@/components/dashboard-charts";
 import { PixelPageShell } from "@/components/pixel-shell";
-import { getAlerts, getEventTrend, getHotRepos } from "@/lib/dashboard";
+import { RealtimeAutoRefresh } from "@/components/realtime-auto-refresh";
+import {
+  getActiveOwners,
+  getAlerts,
+  getEventTrend,
+  getHotRepos,
+  getRealtimeAnomalyAlertRows,
+  getRealtimeEventMetricRows,
+  getRealtimeRepoScoreRows,
+} from "@/lib/dashboard";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function fmt(v: number) {
   return new Intl.NumberFormat("zh-CN").format(v);
 }
 
+function repoUrl(repoName: string) {
+  return `https://github.com/${repoName}`;
+}
+
+function ownerUrl(owner: string) {
+  return `https://github.com/${owner}`;
+}
+
+const tableHeaders = {
+  eventMetrics: ["window_start", "event_type", "repo_name", "actor_category", "event_count"],
+  repoScores: ["window_start", "repo_name", "hotness_score", "push_events", "watch_events", "fork_events"],
+  alerts: ["window_start", "repo_name", "current_events", "baseline_events", "anomaly_ratio", "alert_level"],
+};
+
 export default async function RealtimePage() {
-  const [eventTrend, hotRepos, alerts] = await Promise.all([
+  const [eventTrend, hotRepos, activeOwners, alerts, eventRows, repoRows, alertRows] = await Promise.all([
     getEventTrend(),
     getHotRepos(),
+    getActiveOwners(12),
     getAlerts(),
+    getRealtimeEventMetricRows(30),
+    getRealtimeRepoScoreRows(30),
+    getRealtimeAnomalyAlertRows(30),
   ]);
 
   const eventTrendData = eventTrend.map((item) => ({
-    label: item.windowStart.slice(11, 16),
+    label: (item.windowStartDisplay || item.windowStart).slice(11, 16),
     value: item.totalEvents,
   }));
 
   const maxHotness = hotRepos[0]?.hotnessScore || 1;
+  const maxOwnerHotness = activeOwners[0]?.totalHotness || 1;
+  const latestWindow = eventRows[0]?.windowStart || "-";
+  const totalTopRepoEvents = hotRepos.reduce(
+    (acc, cur) => acc + cur.pushEvents + cur.watchEvents + cur.forkEvents,
+    0,
+  );
 
   return (
     <PixelPageShell
       title="实时事件作战室"
-      subtitle="Kafka 事件流 → 实时消费者 → ClickHouse · 分钟级窗口聚合"
+      subtitle="Kafka 事件流 -> 实时聚合 -> ClickHouse 实时结果表（UTC+8 展示）"
     >
-      {/* ── Event Trend ── */}
-      <section className="nes-container with-title is-dark animate-float delay-1" style={{ marginBottom: 24 }}>
-        <p className="title" style={{ color: "var(--green)" }}>♦ 事件趋势</p>
+      <RealtimeAutoRefresh intervalMs={5000} />
+
+      <section className="rt-kpis animate-float delay-2">
+        <div className="rt-kpi">
+          <p className="rt-kpi-label">最新窗口</p>
+          <p className="rt-kpi-value">{latestWindow}</p>
+        </div>
+        <div className="rt-kpi">
+          <p className="rt-kpi-label">趋势点位</p>
+          <p className="rt-kpi-value">{fmt(eventTrendData.length)}</p>
+        </div>
+        <div className="rt-kpi">
+          <p className="rt-kpi-label">热点仓库</p>
+          <p className="rt-kpi-value">{fmt(hotRepos.length)}</p>
+        </div>
+        <div className="rt-kpi">
+          <p className="rt-kpi-label">活跃用户/组织</p>
+          <p className="rt-kpi-value">{fmt(activeOwners.length)}</p>
+        </div>
+        <div className="rt-kpi">
+          <p className="rt-kpi-label">异常告警</p>
+          <p className="rt-kpi-value rt-kpi-warn">{fmt(alerts.length)}</p>
+        </div>
+      </section>
+
+      <section className="nes-container with-title is-dark animate-float delay-3" style={{ marginBottom: 20 }}>
+        <p className="title rt-title-lg">事件趋势（UTC+8）</p>
         {eventTrendData.length > 0 ? (
           <DashboardCharts variant="line" data={eventTrendData} />
         ) : (
           <p style={{ color: "var(--muted)", textAlign: "center", padding: 40 }}>
-            <span className="animate-blink">▶</span> 等待实时数据...
+            <span className="animate-blink">*</span> 等待实时数据写入...
           </p>
         )}
       </section>
 
-      {/* ── Hot Repos + Alerts ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-        <section className="nes-container with-title is-dark animate-float delay-2">
-          <p className="title" style={{ color: "var(--green)" }}>热点仓库排行</p>
+      <section className="rt-grid-2 animate-float delay-4">
+        <article className="nes-container with-title is-dark">
+          <p className="title rt-title-lg">热点仓库 Top</p>
           {hotRepos.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="rt-list">
               {hotRepos.map((repo, idx) => (
-                <div key={repo.repoName}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span>
-                      <span style={{ color: "var(--green)", fontSize: 16 }}>#{String(idx + 1).padStart(2, "0")}</span>{" "}
-                      <span style={{ color: "var(--fg-strong)", fontSize: 14 }}>{repo.repoName}</span>
-                    </span>
-                    <span style={{ color: "var(--green)", fontSize: 15 }}>
-                      {repo.hotnessScore.toFixed(1)}
-                    </span>
+                <div key={repo.repoName} className="rt-item-card">
+                  <div className="rt-item-row">
+                    <span className="rt-rank">#{String(idx + 1).padStart(2, "0")}</span>
+                    <a className="rt-link" href={repoUrl(repo.repoName)} target="_blank" rel="noreferrer">
+                      {repo.repoName}
+                    </a>
+                    <span className="rt-score">{repo.hotnessScore.toFixed(1)}</span>
                   </div>
-                  <progress className="nes-progress is-success" value={repo.hotnessScore} max={maxHotness} style={{ height: 16 }} />
-                  <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
-                    Push {fmt(repo.pushEvents)} · Watch {fmt(repo.watchEvents)} · Fork {fmt(repo.forkEvents)}
+                  <progress className="nes-progress is-success" value={repo.hotnessScore} max={maxHotness} style={{ height: 12 }} />
+                  <p className="rt-item-sub">
+                    Push {fmt(repo.pushEvents)} | Watch {fmt(repo.watchEvents)} | Fork {fmt(repo.forkEvents)}
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p style={{ color: "var(--muted)", textAlign: "center" }}>暂无数据</p>
+            <p className="rt-empty">暂无热点仓库数据</p>
           )}
-        </section>
+        </article>
 
-        <section className="nes-container with-title is-dark animate-float delay-3">
-          <p className="title" style={{ color: "var(--yellow)" }}>⚠ 异常预警</p>
-          {alerts.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: 420, overflowY: "auto" }}>
-              {alerts.map((alert) => (
-                <div
-                  key={`${alert.windowStart}-${alert.repoName}`}
-                  style={{ background: "rgba(0,0,0,0.3)", padding: "12px 16px", border: "2px solid var(--divider)" }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: "var(--fg-strong)", fontSize: 14 }}>{alert.repoName}</span>
-                    <span style={{ color: alert.alertLevel === "high" ? "var(--red)" : "var(--yellow)", fontSize: 14, fontWeight: "bold" }}>
-                      {alert.alertLevel.toUpperCase()}
-                    </span>
+        <article className="nes-container with-title is-dark">
+          <p className="title rt-title-lg">活跃用户/组织 Top</p>
+          <p className="rt-note">说明：当前按仓库 owner 聚合（无需改实时表结构）</p>
+          {activeOwners.length > 0 ? (
+            <div className="rt-list">
+              {activeOwners.map((owner, idx) => (
+                <div key={owner.ownerName} className="rt-item-card">
+                  <div className="rt-item-row">
+                    <span className="rt-rank">#{String(idx + 1).padStart(2, "0")}</span>
+                    <a className="rt-link" href={ownerUrl(owner.ownerName)} target="_blank" rel="noreferrer">
+                      @{owner.ownerName}
+                    </a>
+                    <span className="rt-score">{owner.totalHotness.toFixed(1)}</span>
                   </div>
-                  <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 6 }}>
-                    异常比值 {alert.anomalyRatio.toFixed(1)} · 当前 {alert.currentEvents} · 基线 {alert.baselineEvents.toFixed(1)}
+                  <progress className="nes-progress is-primary" value={owner.totalHotness} max={maxOwnerHotness} style={{ height: 12 }} />
+                  <p className="rt-item-sub">
+                    事件 {fmt(owner.totalEvents)} | 关联仓库 {fmt(owner.repoCount)}
                   </p>
-                  <progress
-                    className={`nes-progress ${alert.alertLevel === "high" ? "is-error" : "is-warning"}`}
-                    value={Math.min(alert.anomalyRatio * 20, 100)}
-                    max={100}
-                    style={{ height: 10, marginTop: 6 }}
-                  />
                 </div>
               ))}
             </div>
           ) : (
-            <p style={{ color: "var(--muted)", textAlign: "center" }}>暂无异常预警</p>
+            <p className="rt-empty">暂无活跃用户/组织数据</p>
           )}
-        </section>
-      </div>
-
-      {/* ── Locked slots (flat, no nested container) ── */}
-      <section style={{ marginBottom: 24 }} className="animate-float delay-4">
-        <p style={{ color: "var(--muted)", fontSize: 12, letterSpacing: 4, marginBottom: 12 }}>待解锁模块</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-          {["事件类型分布切换", "仓库详情抽屉", "实时事件终端 feed", "Bot/Human 实时对比"].map((slot) => (
-            <div key={slot} style={{ background: "var(--panel)", border: "2px solid var(--divider)", padding: "10px 14px", opacity: 0.5 }}>
-              <span style={{ color: "var(--muted)" }}>🔒 {slot}</span>
-            </div>
-          ))}
-        </div>
+        </article>
       </section>
+
+      <section className="nes-container with-title is-dark animate-float delay-5" style={{ marginTop: 20, marginBottom: 20 }}>
+        <p className="title rt-title-lg">异常预警</p>
+        {alerts.length > 0 ? (
+          <div className="rt-alert-list">
+            {alerts.map((alert) => (
+              <div key={`${alert.windowStart}-${alert.repoName}`} className="rt-alert-card">
+                <div className="rt-item-row">
+                  <a className="rt-link" href={repoUrl(alert.repoName)} target="_blank" rel="noreferrer">
+                    {alert.repoName}
+                  </a>
+                  <span className={alert.alertLevel === "high" ? "rt-pill rt-pill-high" : "rt-pill rt-pill-medium"}>
+                    {alert.alertLevel.toUpperCase()}
+                  </span>
+                </div>
+                <p className="rt-item-sub">
+                  比值 {alert.anomalyRatio.toFixed(2)} | 当前 {fmt(alert.currentEvents)} | 基线 {alert.baselineEvents.toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rt-empty">暂无异常告警</p>
+        )}
+      </section>
+
+      <section className="nes-container with-title is-dark animate-float delay-5" style={{ marginBottom: 20 }}>
+        <p className="title rt-title-lg">实时结果明细表</p>
+        <p className="rt-note">来自 ClickHouse：`realtime_event_metrics` / `realtime_repo_scores` / `realtime_anomaly_alerts`</p>
+
+        <details className="rt-details" open>
+          <summary>realtime_event_metrics（最近 30 条）</summary>
+          <div className="rt-table-wrap">
+            <table className="rt-table">
+              <thead>
+                <tr>{tableHeaders.eventMetrics.map((h) => <th key={h}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {eventRows.map((row, idx) => (
+                  <tr key={`${row.windowStart}-${row.repoName}-${idx}`}>
+                    <td>{row.windowStart}</td>
+                    <td>{row.eventType}</td>
+                    <td>
+                      <a className="rt-link" href={repoUrl(row.repoName)} target="_blank" rel="noreferrer">
+                        {row.repoName}
+                      </a>
+                    </td>
+                    <td>{row.actorCategory}</td>
+                    <td>{row.eventCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details className="rt-details">
+          <summary>realtime_repo_scores（最新窗口 Top 30）</summary>
+          <div className="rt-table-wrap">
+            <table className="rt-table">
+              <thead>
+                <tr>{tableHeaders.repoScores.map((h) => <th key={h}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {repoRows.map((row, idx) => (
+                  <tr key={`${row.repoName}-${idx}`}>
+                    <td>{row.windowStart}</td>
+                    <td>
+                      <a className="rt-link" href={repoUrl(row.repoName)} target="_blank" rel="noreferrer">
+                        {row.repoName}
+                      </a>
+                    </td>
+                    <td>{row.hotnessScore.toFixed(2)}</td>
+                    <td>{row.pushEvents}</td>
+                    <td>{row.watchEvents}</td>
+                    <td>{row.forkEvents}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details className="rt-details">
+          <summary>realtime_anomaly_alerts（最近 30 条）</summary>
+          <div className="rt-table-wrap">
+            <table className="rt-table">
+              <thead>
+                <tr>{tableHeaders.alerts.map((h) => <th key={h}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {alertRows.map((row, idx) => (
+                  <tr key={`${row.windowStart}-${row.repoName}-${idx}`}>
+                    <td>{row.windowStart}</td>
+                    <td>
+                      <a className="rt-link" href={repoUrl(row.repoName)} target="_blank" rel="noreferrer">
+                        {row.repoName}
+                      </a>
+                    </td>
+                    <td>{row.currentEvents}</td>
+                    <td>{row.baselineEvents.toFixed(2)}</td>
+                    <td>{row.anomalyRatio.toFixed(2)}</td>
+                    <td>
+                      <span className={row.alertLevel === "high" ? "rt-pill rt-pill-high" : "rt-pill rt-pill-medium"}>
+                        {row.alertLevel}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <p className="rt-note" style={{ marginBottom: 8 }}>
+        当前 Top 仓库事件总量（Push + Watch + Fork）：{fmt(totalTopRepoEvents)}
+      </p>
     </PixelPageShell>
   );
 }

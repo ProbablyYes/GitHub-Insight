@@ -45,7 +45,7 @@ powershell -ExecutionPolicy Bypass -File scripts/bootstrap_sample_data.ps1
 ### 回放事件
 
 ```bash
-python jobs/replay/replay_gharchive_to_kafka.py --input data/raw --topic github_events --speedup 600
+python jobs/replay/replay_gharchive_to_kafka.py --input data/raw_single/2024-01-03-05.json --topic github_events --speedup 600
 ```
 
 ### 流式处理

@@ -4,6 +4,11 @@ import argparse
 import json
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
+import sys
+
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from kafka import KafkaConsumer
 
@@ -34,25 +39,42 @@ def flush_metrics(events: list[dict]) -> None:
     if not events:
         return
 
-    event_metrics = []
+    event_metric_counts = Counter()
     repo_scores = defaultdict(Counter)
-    repo_totals = Counter()
+    repo_totals_by_window = defaultdict(Counter)
     anomaly_rows = []
 
     for event in events:
         created_at = datetime.fromisoformat(event["created_at"])
+        if created_at.tzinfo is not None:
+            created_at = created_at.astimezone(timezone.utc).replace(tzinfo=None)
         window_start = created_at.replace(second=0, microsecond=0)
-        event_metrics.append(
-            {
-                "window_start": window_start,
-                "event_type": event["event_type"],
-                "repo_name": event["repo_name"],
-                "actor_category": event["actor_category"],
-                "event_count": 1,
-            }
-        )
+        event_metric_counts[
+            (
+                window_start,
+                event["event_type"],
+                event["repo_name"],
+                event["actor_category"],
+            )
+        ] += 1
         repo_scores[(window_start, event["repo_name"])][event["event_type"]] += 1
-        repo_totals[event["repo_name"]] += 1
+        repo_totals_by_window[window_start][event["repo_name"]] += 1
+
+    event_metrics = [
+        {
+            "window_start": window_start,
+            "event_type": event_type,
+            "repo_name": repo_name,
+            "actor_category": actor_category,
+            "event_count": event_count,
+        }
+        for (
+            window_start,
+            event_type,
+            repo_name,
+            actor_category,
+        ), event_count in event_metric_counts.items()
+    ]
 
     repo_score_rows = []
     for (window_start, repo_name), counter in repo_scores.items():
@@ -73,20 +95,21 @@ def flush_metrics(events: list[dict]) -> None:
             }
         )
 
-    average_events = sum(repo_totals.values()) / max(len(repo_totals), 1)
-    for repo_name, current_events in repo_totals.items():
-        anomaly_ratio = current_events / max(average_events, 1.0)
-        if anomaly_ratio >= 2.0:
-            anomaly_rows.append(
-                {
-                    "window_start": datetime.now(timezone.utc).replace(tzinfo=None),
-                    "repo_name": repo_name,
-                    "current_events": current_events,
-                    "baseline_events": average_events,
-                    "anomaly_ratio": anomaly_ratio,
-                    "alert_level": "high" if anomaly_ratio >= 4.0 else "medium",
-                }
-            )
+    for window_start, repo_totals in repo_totals_by_window.items():
+        average_events = sum(repo_totals.values()) / max(len(repo_totals), 1)
+        for repo_name, current_events in repo_totals.items():
+            anomaly_ratio = current_events / max(average_events, 1.0)
+            if anomaly_ratio >= 2.0:
+                anomaly_rows.append(
+                    {
+                        "window_start": window_start,
+                        "repo_name": repo_name,
+                        "current_events": current_events,
+                        "baseline_events": average_events,
+                        "anomaly_ratio": anomaly_ratio,
+                        "alert_level": "high" if anomaly_ratio >= 4.0 else "medium",
+                    }
+                )
 
     insert_records("realtime_event_metrics", event_metrics)
     insert_records("realtime_repo_scores", repo_score_rows)

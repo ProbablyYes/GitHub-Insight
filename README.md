@@ -165,7 +165,7 @@ python jobs/streaming/flink_job.py
 ### 5. 将样例数据回放到 Kafka
 
 ```bash
-python jobs/replay/replay_gharchive_to_kafka.py --input data/raw --topic github_events --speedup 600
+python jobs/replay/replay_gharchive_to_kafka.py --input data/raw_single/2024-01-03-05.json --topic github_events --speedup 600
 ```
 
 ### 6. 运行 Spark 离线任务
