@@ -906,7 +906,7 @@ export function ReposClient({
               overflowX: "auto",
             }}
           >
-            <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
+            <table suppressHydrationWarning style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
               <thead>
                 <tr
                   style={{

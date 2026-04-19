@@ -1,10 +1,10 @@
 # ====================================================================
-#  scripts\boot.ps1 — the ONE entry point you need for this project.
+#  scripts\boot.ps1 — complete backend + frontend restart command.
 # ====================================================================
 #
-#  What it does (idempotent; re-run any time, safe):
+#  What it does:
 #    1. Make sure Docker is up.
-#    2. Start ClickHouse on the *persistent* named volume
+#    2. Restart ClickHouse on the *persistent* named volume
 #       (gba_clickhouse_data). Data survives container restarts and
 #       reboots — it is only lost by an explicit `docker volume rm` or
 #       `docker compose down -v`.
@@ -18,24 +18,28 @@
 #                       (e) network_depth phase 3 (temporal communities)
 #                       (f) network_ic    (influence-cascade seeds)
 #         - non-empty → skip the pipeline entirely (fast restart).
-#    4. Launch the Next.js dev server on port 3000 (or next free port).
+#    4. Force-restart the Next.js dev server on port 3000 (or next free
+#       port), and automatically recover from stale lockfiles / hung node
+#       listeners.
 #
 #  Usage:
-#    .\scripts\boot.ps1                  # normal / daily start
+#    .\scripts\boot.ps1                  # complete restart
 #    .\scripts\boot.ps1 -ForceCompute    # recompute even if data present
 #    .\scripts\boot.ps1 -SkipNetwork     # skip the slow network ML jobs
 #    .\scripts\boot.ps1 -SkipWeb         # backend only (no dev server)
+#    .\scripts\boot.ps1 -NoBrowser       # do not auto-open browser
 #
 #  After the first successful run, the ClickHouse volume keeps the data.
-#  Tomorrow, `boot.ps1` will detect the data is there, skip every Spark
-#  step, and just bring the web server up in ~10 seconds.
+#  Future runs detect existing batch data and skip Spark recompute unless
+#  -ForceCompute is supplied.
 # ====================================================================
 
 param(
     [switch]$ForceCompute,
     [switch]$SkipNetwork,
     [switch]$SkipWeb,
-    [int]$Port = 3000
+    [int]$Port = 3000,
+    [switch]$NoBrowser
 )
 
 $ErrorActionPreference = "Stop"
@@ -54,10 +58,17 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw "docker not found. Please install / start Docker Desktop."
 }
 
-# ── 1. start ClickHouse on persistent volume ─────────────────────────────
-Write-Banner "1/4  ClickHouse (persistent volume: gba_clickhouse_data)"
-docker compose up -d clickhouse
-if ($LASTEXITCODE -ne 0) { throw "docker compose up -d clickhouse failed ($LASTEXITCODE)" }
+# ── 1. restart ClickHouse on persistent volume ───────────────────────────
+Write-Banner "1/4  Restart ClickHouse (persistent volume: gba_clickhouse_data)"
+$clickhouseExists = $null -ne (docker ps -a --filter "name=^/gba-clickhouse$" --format "{{.Names}}")
+if ($clickhouseExists) {
+    docker compose restart clickhouse
+    if ($LASTEXITCODE -ne 0) { throw "docker compose restart clickhouse failed ($LASTEXITCODE)" }
+}
+else {
+    docker compose up -d clickhouse
+    if ($LASTEXITCODE -ne 0) { throw "docker compose up -d clickhouse failed ($LASTEXITCODE)" }
+}
 
 Write-Host "Waiting for ClickHouse HTTP /ping ..."
 $chOk = $false
@@ -161,8 +172,8 @@ else {
 
 # ── 4. start web ─────────────────────────────────────────────────────────
 if (-not $SkipWeb) {
-    Write-Banner "4/4  Next.js dev server"
-    & "$PSScriptRoot\start_web.ps1" -Port $Port
+    Write-Banner "4/4  Restart Next.js dev server"
+    & "$PSScriptRoot\start_web.ps1" -Port $Port -ForceRestart -NoBrowser:$NoBrowser
 }
 else {
     Write-Host ""

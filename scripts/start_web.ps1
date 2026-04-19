@@ -1,6 +1,7 @@
 param(
     [int]$Port = 3000,
-    [switch]$ForceRestart
+    [switch]$ForceRestart,
+    [switch]$NoBrowser
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,17 +46,45 @@ function Get-RunningNodeListener {
     return $null
 }
 
-if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    throw "docker command not found. Please install/start Docker Desktop."
+function Test-FrontendHealthy {
+    param(
+        [Parameter(Mandatory = $true)][int]$TargetPort,
+        [int]$TimeoutSec = 3
+    )
+
+    try {
+        $response = Invoke-WebRequest -Uri "http://localhost:$TargetPort/" -UseBasicParsing -TimeoutSec $TimeoutSec
+        return ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500)
+    }
+    catch {
+        return $false
+    }
 }
 
-Write-Host "Step 1: start ClickHouse (backend)"
-docker compose up -d clickhouse
-if ($LASTEXITCODE -ne 0) {
-    throw "docker compose up failed with exit code $LASTEXITCODE"
+function Open-FrontendUrl {
+    param(
+        [Parameter(Mandatory = $true)][int]$TargetPort
+    )
+
+    if ($NoBrowser) {
+        return
+    }
+
+    Start-Process "http://localhost:$TargetPort/offline/overview" | Out-Null
 }
 
-Write-Host "Step 2: start Next.js dev server (frontend)"
+function Stop-DevServer {
+    param(
+        [Parameter(Mandatory = $true)][int]$ProcessId,
+        [Parameter(Mandatory = $true)][string]$Reason
+    )
+
+    Write-Host $Reason -ForegroundColor Yellow
+    Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
+    Remove-Item -Force $lockPath -ErrorAction SilentlyContinue
+}
+
+Write-Host "Step 1: inspect existing Next.js dev server"
 
 $webRoot = Join-Path $projectRoot "apps\web"
 $lockPath = Join-Path $webRoot ".next\dev\lock"
@@ -81,24 +110,24 @@ if (Test-Path $lockPath) {
             $listener = Get-NetTCPConnection -LocalPort ([int]$lock.port) -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($listener -and $listener.OwningProcess -eq $lock.pid) { $portAlive = $true }
         }
-        if ($existing -and -not $portAlive) {
-            Write-Host "Lockfile points at pid=$($lock.pid) but port $($lock.port) is not listening." -ForegroundColor Yellow
-            Write-Host "Killing zombie dev server..." -ForegroundColor Yellow
-            Stop-Process -Id $lock.pid -Force -ErrorAction SilentlyContinue
-            Remove-Item -Force $lockPath -ErrorAction SilentlyContinue
-            $existing = $null
-        }
         if ($existing) {
+            $frontendHealthy = $false
+            if ($portAlive -and $lock.port) {
+                $frontendHealthy = Test-FrontendHealthy -TargetPort ([int]$lock.port)
+            }
+
             if ($ForceRestart) {
-                Write-Host "Stopping existing Next.js dev server (pid=$($lock.pid), port=$($lock.port))"
-                Stop-Process -Id $lock.pid -Force -ErrorAction SilentlyContinue
-                Remove-Item -Force $lockPath -ErrorAction SilentlyContinue
+                Stop-DevServer -ProcessId $lock.pid -Reason "ForceRestart set: stopping existing Next.js dev server (pid=$($lock.pid), port=$($lock.port))."
+            }
+            elseif ($portAlive -and $frontendHealthy) {
+                $url = if ($lock.appUrl) { $lock.appUrl } else { "http://localhost:$($lock.port)" }
+                Write-Host "Detected healthy Next.js dev server (pid=$($lock.pid), port=$($lock.port))"
+                Write-Host "Opening: $url/offline/overview"
+                Open-FrontendUrl -TargetPort ([int]$lock.port)
+                return
             }
             else {
-                $url = if ($lock.appUrl) { $lock.appUrl } else { "http://localhost:$($lock.port)" }
-                Write-Host "Detected running Next.js dev server (pid=$($lock.pid))"
-                Write-Host "Opening: $url/offline/overview"
-                return
+                Stop-DevServer -ProcessId $lock.pid -Reason "Detected stale Next.js dev server (pid=$($lock.pid), port=$($lock.port)); restarting it."
             }
         }
         else {
@@ -115,15 +144,19 @@ if (Test-Path $lockPath) {
         }
 
         if ($running) {
+            $frontendHealthy = Test-FrontendHealthy -TargetPort ([int]$running.port)
+
             if ($ForceRestart) {
-                Write-Host "Stopping existing dev server (pid=$($running.pid), port=$($running.port))"
-                Stop-Process -Id $running.pid -Force -ErrorAction SilentlyContinue
-                Remove-Item -Force $lockPath -ErrorAction SilentlyContinue
+                Stop-DevServer -ProcessId $running.pid -Reason "ForceRestart set: stopping existing Next.js dev server (pid=$($running.pid), port=$($running.port))."
             }
-            else {
+            elseif ($frontendHealthy) {
                 Write-Host "Detected running dev server (pid=$($running.pid))"
                 Write-Host "Opening: http://localhost:$($running.port)/offline/overview"
+                Open-FrontendUrl -TargetPort ([int]$running.port)
                 return
+            }
+            else {
+                Stop-DevServer -ProcessId $running.pid -Reason "Detected unresponsive Next.js dev server (pid=$($running.pid), port=$($running.port)); restarting it."
             }
         }
     }
@@ -134,7 +167,9 @@ if ($selectedPort -ne $Port) {
     Write-Host "Port $Port is in use; using $selectedPort instead."
 }
 
+Write-Host "Step 2: start Next.js dev server (frontend)"
 Write-Host "Opening: http://localhost:$selectedPort/offline/overview"
+Open-FrontendUrl -TargetPort $selectedPort
 
 # Next.js accepts -p/--port; we also set PORT for compatibility
 $env:PORT = "$selectedPort"

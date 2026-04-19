@@ -1290,7 +1290,7 @@ export function PeopleClient({
           <p style={{ color: "var(--muted)", textAlign: "center" }}>No ring data.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <table suppressHydrationWarning style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
               <thead>
                 <tr style={{ color: "var(--muted)" }}>
                   <th style={{ textAlign: "left", padding: "6px 4px" }}>ring</th>

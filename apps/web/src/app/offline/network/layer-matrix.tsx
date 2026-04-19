@@ -93,7 +93,7 @@ export function LayerMatrix({
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+      <table suppressHydrationWarning style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
         <thead>
           <tr style={{ color: "var(--muted)", textAlign: "left" }}>
             <th style={{ padding: "6px 4px" }}>layer</th>

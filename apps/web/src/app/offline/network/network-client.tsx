@@ -1058,7 +1058,7 @@ export function NetworkClient({
           <p style={{ color: "var(--muted)", textAlign: "center" }}>No bridge repos detected.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table suppressHydrationWarning style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ color: "var(--muted)", textAlign: "left" }}>
                   <th style={{ padding: "6px 4px" }}>#</th>
@@ -1973,7 +1973,7 @@ export function NetworkClient({
               CELF seed list (top {seedGreedy.length})
             </h4>
             <div style={{ overflow: "auto", maxHeight: 340, border: "1px solid var(--border)" }}>
-              <table style={{ width: "100%", fontSize: 10, borderCollapse: "collapse" }}>
+              <table suppressHydrationWarning style={{ width: "100%", fontSize: 10, borderCollapse: "collapse" }}>
                 <thead style={{ background: "var(--bg-sunken, #111)", position: "sticky", top: 0 }}>
                   <tr>
                     <th style={{ textAlign: "left", padding: "4px 6px" }}>#</th>
