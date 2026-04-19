@@ -2,6 +2,9 @@ import { getSummaryMetrics } from "@/lib/dashboard";
 import { PixelPageShell } from "@/components/pixel-shell";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function fmt(v: number) {
   return new Intl.NumberFormat("zh-CN").format(v);
 }

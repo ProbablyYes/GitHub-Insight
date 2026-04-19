@@ -18,7 +18,7 @@ $streamingJob = Start-Job -ScriptBlock {
 } -ArgumentList $projectRoot
 
 Write-Host "Step 5: replay realtime data"
-python -m jobs.replay.replay_gharchive_to_kafka --input data/raw --topic github_events --speedup 1000
+python -m jobs.replay.replay_gharchive_to_kafka --input data/raw_single/2024-01-03-05.json --topic github_events --speedup 1000
 
 Write-Host "Step 6: run offline batch pipeline"
 powershell -ExecutionPolicy Bypass -File "$PSScriptRoot\run_batch_pipeline.ps1"

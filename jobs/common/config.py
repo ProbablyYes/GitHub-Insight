@@ -6,6 +6,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 CURATED_DATA_DIR = DATA_DIR / "curated"
 SAMPLE_DATA_DIR = DATA_DIR / "sample"
+REALTIME_REPLAY_INPUT = DATA_DIR / "raw_single" / "2024-01-03-05.json"
 
 DEFAULT_EVENT_TYPES = {
     "PushEvent",
