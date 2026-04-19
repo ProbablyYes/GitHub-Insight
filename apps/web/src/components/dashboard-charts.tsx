@@ -11,6 +11,7 @@ type DashboardChartsProps = {
   variant: "line" | "bar" | "pie";
   data: ChartPoint[];
   color?: string;
+  onSliceClick?: (label: string) => void;
 };
 
 const MetricLineChart = dynamic(
@@ -41,13 +42,14 @@ export function DashboardCharts({
   variant,
   data,
   color,
+  onSliceClick,
 }: DashboardChartsProps) {
   if (variant === "bar") {
     return <MetricBarChart data={data} color={color} />;
   }
 
   if (variant === "pie") {
-    return <MetricPieChart data={data} />;
+    return <MetricPieChart data={data} onSliceClick={onSliceClick} />;
   }
 
   return <MetricLineChart data={data} color={color} />;

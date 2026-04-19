@@ -57,6 +57,7 @@ def build_spark() -> SparkSession:
         SparkSession.builder.appName("github-stream-batch-curation")
         .master("local[*]")
         .config("spark.sql.session.timeZone", "UTC")
+        .config("spark.sql.files.ignoreMissingFiles", "true")
         .getOrCreate()
     )
 

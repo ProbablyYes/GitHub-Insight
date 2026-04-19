@@ -3,7 +3,7 @@ import { PixelPageShell } from "@/components/pixel-shell";
 import { getAlerts, getEventTrend, getHotRepos } from "@/lib/dashboard";
 
 function fmt(v: number) {
-  return new Intl.NumberFormat("zh-CN").format(v);
+  return new Intl.NumberFormat("en-US").format(v);
 }
 
 export default async function RealtimePage() {
@@ -22,17 +22,17 @@ export default async function RealtimePage() {
 
   return (
     <PixelPageShell
-      title="实时事件作战室"
-      subtitle="Kafka 事件流 → 实时消费者 → ClickHouse · 分钟级窗口聚合"
+      title="Realtime Event War Room"
+      subtitle="Kafka stream → realtime consumer → ClickHouse · minute-level window aggregation"
     >
       {/* ── Event Trend ── */}
       <section className="nes-container with-title is-dark animate-float delay-1" style={{ marginBottom: 24 }}>
-        <p className="title" style={{ color: "var(--green)" }}>♦ 事件趋势</p>
+        <p className="title" style={{ color: "var(--green)" }}>♦ Event trend</p>
         {eventTrendData.length > 0 ? (
           <DashboardCharts variant="line" data={eventTrendData} />
         ) : (
           <p style={{ color: "var(--muted)", textAlign: "center", padding: 40 }}>
-            <span className="animate-blink">▶</span> 等待实时数据...
+            <span className="animate-blink">▶</span> Waiting for realtime data...
           </p>
         )}
       </section>
@@ -40,7 +40,7 @@ export default async function RealtimePage() {
       {/* ── Hot Repos + Alerts ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
         <section className="nes-container with-title is-dark animate-float delay-2">
-          <p className="title" style={{ color: "var(--green)" }}>热点仓库排行</p>
+          <p className="title" style={{ color: "var(--green)" }}>Hot repos</p>
           {hotRepos.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {hotRepos.map((repo, idx) => (
@@ -62,12 +62,12 @@ export default async function RealtimePage() {
               ))}
             </div>
           ) : (
-            <p style={{ color: "var(--muted)", textAlign: "center" }}>暂无数据</p>
+            <p style={{ color: "var(--muted)", textAlign: "center" }}>No data.</p>
           )}
         </section>
 
         <section className="nes-container with-title is-dark animate-float delay-3">
-          <p className="title" style={{ color: "var(--yellow)" }}>⚠ 异常预警</p>
+          <p className="title" style={{ color: "var(--yellow)" }}>⚠ Anomaly alerts</p>
           {alerts.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 14, maxHeight: 420, overflowY: "auto" }}>
               {alerts.map((alert) => (
@@ -82,7 +82,7 @@ export default async function RealtimePage() {
                     </span>
                   </div>
                   <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 6 }}>
-                    异常比值 {alert.anomalyRatio.toFixed(1)} · 当前 {alert.currentEvents} · 基线 {alert.baselineEvents.toFixed(1)}
+                    Ratio {alert.anomalyRatio.toFixed(1)} · Current {alert.currentEvents} · Baseline {alert.baselineEvents.toFixed(1)}
                   </p>
                   <progress
                     className={`nes-progress ${alert.alertLevel === "high" ? "is-error" : "is-warning"}`}
@@ -94,16 +94,21 @@ export default async function RealtimePage() {
               ))}
             </div>
           ) : (
-            <p style={{ color: "var(--muted)", textAlign: "center" }}>暂无异常预警</p>
+            <p style={{ color: "var(--muted)", textAlign: "center" }}>No anomaly alerts.</p>
           )}
         </section>
       </div>
 
       {/* ── Locked slots (flat, no nested container) ── */}
       <section style={{ marginBottom: 24 }} className="animate-float delay-4">
-        <p style={{ color: "var(--muted)", fontSize: 12, letterSpacing: 4, marginBottom: 12 }}>待解锁模块</p>
+        <p style={{ color: "var(--muted)", fontSize: 12, letterSpacing: 4, marginBottom: 12 }}>LOCKED MODULES</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-          {["事件类型分布切换", "仓库详情抽屉", "实时事件终端 feed", "Bot/Human 实时对比"].map((slot) => (
+          {[
+            "Event-type distribution toggle",
+            "Repo detail drawer",
+            "Realtime terminal feed",
+            "Bot vs Human realtime comparison",
+          ].map((slot) => (
             <div key={slot} style={{ background: "var(--panel)", border: "2px solid var(--divider)", padding: "10px 14px", opacity: 0.5 }}>
               <span style={{ color: "var(--muted)" }}>🔒 {slot}</span>
             </div>

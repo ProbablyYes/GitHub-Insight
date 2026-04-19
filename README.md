@@ -193,17 +193,38 @@ npm run dev --prefix apps/web
 
 ### 8. 一键启动演示链路
 
-默认启动 `Next.js` 仪表盘：
+**日常恢复（不丢数据，最常用）**：
 
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/run_demo_pipeline.ps1
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\resume.ps1
 ```
 
-推荐日常开发与联调使用统一入口：
+启动 ClickHouse（持久卷，表数据自动保留）+ Next.js 开发服务器。
+不会触发任何数据重建。
 
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/start_all.ps1
+**安全停止**：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\stop_all.ps1
 ```
+
+只 `docker compose stop`，**不删容器、不删卷**，下次 `resume.ps1` 数据原样在。
+
+**首次或需要重算离线表时**：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run_batch_pipeline.ps1
+```
+
+> 数据持久化细节（哪些操作会丢数据、如何迁移、如何恢复）：见
+> [`docs/data_persistence.md`](docs/data_persistence.md)。
+
+其他入口：
+
+- `scripts\start_all.ps1` —— 首次完整链路（Kafka + Flink + 回放 + 批处理 + Next.js）。
+- `scripts\run_demo_pipeline.ps1` —— 答辩演示专用链路。
+- `scripts\migrate_clickhouse_volume.ps1` —— **一次性**把旧容器里的数据
+  迁入命名卷（首次升级持久化配置后执行一次即可，幂等可重跑）。
 
 ## 开发建议
 

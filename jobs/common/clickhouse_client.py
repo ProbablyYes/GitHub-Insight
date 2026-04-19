@@ -23,10 +23,12 @@ def get_clickhouse_client():
     )
 
 
-def insert_records(table: str, records: Sequence[Mapping[str, object]]) -> None:
+def insert_records(table: str, records: Sequence[Mapping[str, object]], *, truncate: bool = False) -> None:
     if not records:
         return
     client = get_clickhouse_client()
+    if truncate:
+        client.command(f"TRUNCATE TABLE {table}")
     client.insert_df(table, _records_to_dataframe(records))
 
 

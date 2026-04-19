@@ -24,7 +24,7 @@ type TrendPoint = {
 
 export function AdvancedTrendChart({ data }: { data: TrendPoint[] }) {
   return (
-    <div style={{ width: "100%", height: 300 }}>
+    <div style={{ width: "100%", height: 300, minWidth: 0 }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.06)" />
@@ -76,6 +76,15 @@ type BurstPoint = {
   quadrant: string;
 };
 
+const QUADRANT_COLORS: Record<string, string> = {
+  short_spike: "#ff5252",
+  rising_core: "#ffb020",
+  steady_core: "#33ccff",
+  long_tail: "#888888",
+};
+
+const QUADRANT_ORDER = ["short_spike", "rising_core", "steady_core", "long_tail"];
+
 export function BurstScatterChart({ data }: { data: BurstPoint[] }) {
   const chartData = data.map((item) => ({
     x: item.stabilityIndex,
@@ -85,10 +94,15 @@ export function BurstScatterChart({ data }: { data: BurstPoint[] }) {
     quadrant: item.quadrant,
   }));
 
+  const grouped = QUADRANT_ORDER.map((q) => ({
+    quadrant: q,
+    points: chartData.filter((d) => d.quadrant === q),
+  })).filter((g) => g.points.length > 0);
+
   return (
-    <div style={{ width: "100%", height: 320 }}>
+    <div style={{ width: "100%", height: 340, minWidth: 0 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 10, right: 18, left: -8, bottom: 12 }}>
+        <ScatterChart margin={{ top: 10, right: 18, left: -8, bottom: 30 }}>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.08)" />
           <XAxis
             type="number"
@@ -98,6 +112,7 @@ export function BurstScatterChart({ data }: { data: BurstPoint[] }) {
             tick={{ fill: "#666", fontSize: 12, fontFamily: '"Zpix", monospace' }}
             axisLine={{ stroke: "#333" }}
             tickLine={false}
+            label={{ value: "stability_index", position: "insideBottom", offset: -8, fill: "#888", fontSize: 11 }}
           />
           <YAxis
             type="number"
@@ -107,6 +122,7 @@ export function BurstScatterChart({ data }: { data: BurstPoint[] }) {
             tick={{ fill: "#666", fontSize: 12, fontFamily: '"Zpix", monospace' }}
             axisLine={{ stroke: "#333" }}
             tickLine={false}
+            label={{ value: "burst_index", angle: -90, position: "insideLeft", offset: 18, fill: "#888", fontSize: 11 }}
           />
           <ZAxis type="number" dataKey="z" range={[40, 320]} />
           <Tooltip
@@ -129,9 +145,21 @@ export function BurstScatterChart({ data }: { data: BurstPoint[] }) {
               fontSize: 13,
             }}
           />
+          <Legend
+            verticalAlign="top"
+            height={22}
+            wrapperStyle={{ fontFamily: '"Zpix", monospace', fontSize: 11, color: "#aaa" }}
+          />
           <ReferenceLine x={0.6} stroke="#777" strokeDasharray="5 5" />
           <ReferenceLine y={2} stroke="#777" strokeDasharray="5 5" />
-          <Scatter data={chartData} fill="#33ccff" />
+          {grouped.map((g) => (
+            <Scatter
+              key={g.quadrant}
+              name={g.quadrant}
+              data={g.points}
+              fill={QUADRANT_COLORS[g.quadrant] ?? "#33ccff"}
+            />
+          ))}
         </ScatterChart>
       </ResponsiveContainer>
     </div>

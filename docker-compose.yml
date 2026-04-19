@@ -29,6 +29,7 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
     container_name: gba-clickhouse
+    restart: unless-stopped
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -39,6 +40,11 @@ services:
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     volumes:
       - ./configs/clickhouse/init:/docker-entrypoint-initdb.d
+      # Named volumes: keep table data & logs across `docker compose down`
+      # or container recreation. Run scripts/migrate_clickhouse_volume.ps1
+      # ONCE to move existing data into these volumes.
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
 
   minio:
     image: minio/minio:RELEASE.2024-04-18T19-09-19Z
@@ -97,3 +103,17 @@ services:
       - ./:/workspace
     environment:
       PYTHONPATH: /workspace
+
+# Docker-managed named volumes. Data here SURVIVES:
+#   - docker compose stop / start
+#   - docker compose down   (container removed, but volume kept)
+#   - Docker Desktop restart / PC reboot
+# Data is LOST only on:
+#   - docker compose down -v    (explicit volume removal)
+#   - docker volume rm gba_clickhouse_data / _logs
+#   - Docker Desktop "Clean / Purge data"
+volumes:
+  clickhouse_data:
+    name: gba_clickhouse_data
+  clickhouse_logs:
+    name: gba_clickhouse_logs
