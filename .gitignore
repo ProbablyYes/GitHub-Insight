@@ -8,6 +8,22 @@ data/raw/
 data/sample/daily_metrics/
 data/sample/activity_patterns/
 
+# Generated Spark outputs (avoid committing large datasets)
+data/curated/**/.part-*
+data/curated/**/part-*
+data/curated/**/_SUCCESS
+data/curated/**/._SUCCESS.crc
+
+data/sample/**/.part-*
+data/sample/**/part-*
+data/sample/**/_SUCCESS
+data/sample/**/._SUCCESS.crc
+
+data/network_depth/**/.part-*
+data/network_depth/**/part-*
+data/network_depth/**/_SUCCESS
+data/network_depth/**/._SUCCESS.crc
+
 .streamlit/
 .idea/
 .vscode/
