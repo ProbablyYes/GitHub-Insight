@@ -30,3 +30,7 @@ data/network_depth/**/._SUCCESS.crc
 apps/web/node_modules/
 apps/web/.next/
 apps/web/.env.local
+
+# Logs / runtime artifacts
+logs/
+*.log

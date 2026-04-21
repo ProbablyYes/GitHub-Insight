@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+
+import { EntityDrawer, EntityDrawerProvider } from "@/components/entity";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "GitHub Insight",
-  description: "GitHub 开源生态流批分析系统",
+  description: "Streaming + batch analytics for the GitHub open-source ecosystem.",
 };
 
 export default function RootLayout({
@@ -12,8 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <EntityDrawerProvider>
+          {children}
+          <EntityDrawer />
+        </EntityDrawerProvider>
+      </body>
     </html>
   );
 }

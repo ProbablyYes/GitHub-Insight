@@ -12,7 +12,7 @@ export function MetricBarChart({
   color?: string;
 }) {
   return (
-    <div style={{ width: "100%", height: 280 }}>
+    <div style={{ width: "100%", height: 280, minWidth: 0 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.06)" />

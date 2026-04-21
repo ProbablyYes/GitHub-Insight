@@ -11,19 +11,62 @@
 
 /* ===== Design Tokens ===== */
 :root {
+  /* Base palette */
   --bg: #0a0a0a;
   --fg: #d4d4d4;
   --fg-strong: #ffffff;
-  --green: #33ff57;
-  --green-dim: rgba(51, 255, 87, 0.10);
-  --yellow: #ffcc00;
-  --yellow-dim: rgba(255, 204, 0, 0.10);
-  --cyan: #33ccff;
-  --cyan-dim: rgba(51, 204, 255, 0.10);
-  --red: #ff3333;
   --panel: #111111;
-  --muted: #666666;
+  --panel-strong: #161616;
+  --muted: #7a7a7a;
+  --muted-strong: #a0a0a0;
   --divider: #222222;
+
+  /* Semantic palette (use these, not raw hex) */
+  --accent-positive: #33ff57;       /* positive / hot */
+  --accent-positive-dim: rgba(51, 255, 87, 0.10);
+  --accent-change: #ffcc00;         /* change / warning */
+  --accent-change-dim: rgba(255, 204, 0, 0.10);
+  --accent-info: #33ccff;           /* info / neutral highlight */
+  --accent-info-dim: rgba(51, 204, 255, 0.10);
+  --accent-danger: #ff3333;         /* anomaly / decline */
+  --accent-danger-dim: rgba(255, 51, 51, 0.10);
+  --accent-magenta: #ff66cc;        /* persona accent */
+  --accent-magenta-dim: rgba(255, 102, 204, 0.12);
+  --accent-purple: #a07bff;         /* secondary category */
+  --accent-purple-dim: rgba(160, 123, 255, 0.12);
+
+  /* Back-compat aliases (do not remove — older pages reference these) */
+  --green: var(--accent-positive);
+  --green-dim: var(--accent-positive-dim);
+  --yellow: var(--accent-change);
+  --yellow-dim: var(--accent-change-dim);
+  --cyan: var(--accent-info);
+  --cyan-dim: var(--accent-info-dim);
+  --red: var(--accent-danger);
+
+  /* Spacing tokens (pixel grid, 4px base) */
+  --pixel-space-1: 4px;
+  --pixel-space-2: 8px;
+  --pixel-space-3: 12px;
+  --pixel-space-4: 16px;
+  --pixel-space-5: 24px;
+  --pixel-space-6: 32px;
+  --pixel-space-7: 48px;
+
+  /* Typography scale */
+  --fs-hero: 24px;
+  --fs-title: 18px;
+  --fs-section: 14px;
+  --fs-body: 13px;
+  --fs-caption: 11px;
+  --fs-micro: 10px;
+
+  /* Line heights (tighter than default 2) */
+  --lh-tight: 1.35;
+  --lh-normal: 1.6;
+
+  /* Radii (pixel blocks — keep 0) */
+  --radius-block: 0;
 }
 
 @theme inline {
@@ -42,8 +85,8 @@ body {
   color: var(--fg);
   margin: 0;
   min-height: 100vh;
-  font-size: 14px;
-  line-height: 2;
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
   background-image:
     linear-gradient(rgba(51,255,87,0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(51,255,87,0.02) 1px, transparent 1px);
@@ -69,7 +112,7 @@ a { color: inherit; text-decoration: none; }
 .nes-container {
   background: var(--panel) !important;
   color: var(--fg) !important;
-  padding: 24px !important;
+  padding: var(--pixel-space-5) !important;
   margin: 0 !important;
 }
 .nes-container.is-dark {
@@ -81,18 +124,39 @@ a { color: inherit; text-decoration: none; }
 }
 .nes-container.with-title > .title {
   background-color: var(--bg) !important;
-  color: var(--green) !important;
-  font-size: 14px !important;
+  color: var(--accent-positive) !important;
+  font-size: var(--fs-section) !important;
 }
 .nes-container.is-dark.with-title > .title {
   background-color: var(--bg) !important;
 }
 .nes-btn {
   font-family: "Zpix", "Press Start 2P", monospace !important;
-  font-size: 14px !important;
+  font-size: var(--fs-section) !important;
 }
 .nes-progress {
   height: 24px !important;
+}
+
+/* ===== Shared pixel utilities ===== */
+.pixel-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.pixel-scroll::-webkit-scrollbar-track { background: var(--panel); }
+.pixel-scroll::-webkit-scrollbar-thumb { background: var(--divider); border: 2px solid var(--panel); }
+
+details > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "[+] "; color: var(--accent-info); }
+details[open] > summary::before { content: "[-] "; }
+
+.pixel-hover:hover { background: var(--divider); cursor: pointer; }
+
+@keyframes pixel-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 /* ===== Animations ===== */
